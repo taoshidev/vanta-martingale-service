@@ -1,0 +1,11 @@
+# secrets -- this is a public repository; keys, endpoints and DSNs must never be committed
+secrets.json
+.env
+
+# local environment & caches
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.idea/
+.DS_Store

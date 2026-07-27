@@ -1,0 +1,5 @@
+websockets>=15
+psycopg[binary]>=3.2
+
+# tests
+pytest>=8
