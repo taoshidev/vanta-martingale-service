@@ -1,36 +1,34 @@
 # vanta-martingale-service
 
-Detects martingale behavior — doubling down while losing — on Vanta subaccounts and records a
-warning / elimination-eligibility trail for human review. The service only observes and
+This service detects martingale behavior, broadly defined as repeatedly increasing size while losing, on Vanta subaccounts and records warnings and elimination candidates with relevant reporting data for human review. The service only observes and
 records; it never eliminates on its own.
 
 ## How detection works
 
-For each trade pair, the service replays a subaccount's orders in time order and looks for one
-thing: **position size escalating while the pair is losing.**
+For each trade pair, the service analyzes the subaccount's orders in chronological order and detects
+repeated and relatively large increases in position size while the pair continues to lose.
 
-1. **Losing stretch.** Track the pair's running profit and loss — realized plus unrealized,
-   carried across closing and reopening a position so a close-and-reopen can't hide anything. A
+1. **Losing stretch.** We track the realized and unrealized profit and loss for all positions active
+   for any duration during the detection window. A
    *losing stretch* is a run of consecutive orders placed while that P&L is below zero; it ends
    the moment P&L returns to break-even or better.
 2. **Escalating ladder.** Inside one losing stretch, look for orders whose net position size
-   keeps growing — each at least `escalation_factor`× the size of an earlier order in the
+   keeps growing, each at least `escalation_factor`× the size of an earlier order in the
    ladder. The orders need not be consecutive. Size is measured in quantity (lots), not
    leverage, so the escalation stays visible even as the price falls. Orders smaller than
-   `floor_fraction` of the pair's typical maximum size are ignored, so dust and closes can't
-   pad the ladder.
+   `floor_fraction` of the pair's typical maximum size are ignored.
 3. **Trigger.** When the ladder reaches `chain_length` orders, the order that completes it is a
    **trigger**.
-4. **Window.** Only orders within the last `lookback_days` count toward a stretch.
+4. **Window.** Only orders within the last `lookback_days` are included in detection.
 
 ### What does not trigger
 
-By design, ordinary trading does not look like this:
+By design, ordinary trading does not look like the behavior described above. Below are examples that would not be flagged:
 
-- A losing trade that is simply held or closed — no escalation.
-- Re-entering at a normal or steady size — the ladder never reaches `chain_length`.
-- Positions below the floor — ignored.
-- Growing a position while *winning* — only losing stretches count.
+- A losing trade that is simply held or closed since no escalation position size is occurring.
+- Re-entering at a normal or steady size wouldn't increase the ladder orders to `chain_length`.
+- Positions below the floor are ignored.
+- Growing a position while *winning* since only losing stretches count.
 
 ### Warning, then elimination
 
@@ -39,31 +37,25 @@ By design, ordinary trading does not look like this:
 2. A **later** trigger, on an order placed at least `grace_period_days` after the warning, marks
    it **eliminate-eligible** (`elimination_action = 'pending_review'`). Triggers inside the
    grace window are recorded but do not escalate.
-3. Elimination is always a human decision — nothing here eliminates automatically.
+3. Elimination is always a human decision since subaccounts are never eliminated automatically.
 
 ### Parameters
 
 `martingale_service/config.py` is the source of truth; the current values are:
 
-| parameter | value | meaning |
-|---|---|---|
-| `escalation_factor` | 1.5 | each ladder order must be ≥ this × an earlier one |
-| `chain_length` | 4 | ladder orders needed to trigger |
+| parameter | value | meaning                                                       |
+|---|---|---------------------------------------------------------------|
+| `escalation_factor` | 1.5 | each ladder order must be ≥ this times an earlier order       |
+| `chain_length` | 4 | ladder orders needed to trigger a warning or elimination      |
 | `floor_fraction` | 0.03 | orders below this fraction of the pair's max size are ignored |
-| `lookback_days` | 10 | length of the trailing detection window |
+| `lookback_days` | 10 | length of the trailing detection window                       |
 | `grace_period_days` | 3 | minimum gap from the warning to an eliminate-eligible trigger |
 
 ## Guarantees
 
-- **Judged once, on arrival.** Each order is evaluated the first time the service sees it, and
-  the verdict is frozen. An order's window is pinned to the UTC day it was placed, so
-  corrections, backfills, or the passage of time never re-judge a past order. A late-arriving
-  old order can therefore only ever raise a warning, never an elimination.
-- **Monitoring starts now.** A subaccount first seen by the service is monitored from that
-  moment; its earlier orders are used only as context for later windows and are never judged.
-- **Evidence is kept.** A trigger stores the ladder it completed — order ids, sizes, fill
-  prices, and the P&L that made the stretch a losing one — so the record survives later order
-  corrections.
+- **Not Retroactive.** Historical orders will not be used for detection. Detection begins once the service goes live.
+- **Evidence is kept.** A trigger stores the flagged orders along with relevant metadata. The record will
+  not be retroactively changed by any order corrections.
 
 ## Architecture
 
