@@ -82,6 +82,7 @@ def test_first_trigger_warns_and_rows_are_frozen(store):
     assert chain[-1]["price"] == 1.06
     assert all(c["pnl"] < 0 for c in chain)            # what made the streak underwater
     assert detector_params["window_days"] == 10
+    assert detector_params["grace_period_days"] == 3
     assert rows[0][3] is None and rows[0][4] is None   # non-triggering rows carry no chain
 
 

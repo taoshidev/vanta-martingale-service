@@ -1,6 +1,6 @@
 # vanta-martingale-service
 
-This service detects martingale behavior, broadly defined as repeatedly increasing size while losing, on Vanta subaccounts and records warnings and elimination candidates with relevant reporting data for human review. The service only observes and
+This service detects martingale behavior, broadly defined as repeatedly and substantially increasing size while losing, on Vanta subaccounts and records warnings and elimination candidates with relevant reporting data for human review. The service only observes and
 records; it never eliminates on its own.
 
 ## How detection works

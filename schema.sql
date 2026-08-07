@@ -35,7 +35,8 @@ CREATE TABLE martingale_order_evaluations (
                                                              -- exposure = net position size AFTER the order; pnl =
                                                              -- window-cumulative pnl right BEFORE the order executes.
     detector_params        JSONB,                           -- {escalation_factor, floor_fraction, chain_length,
-                                                             --  floor_mode, window_days}; set only when triggering
+                                                             --  floor_mode, window_days, grace_period_days}; set
+                                                             --  only when triggering
     created_at             TIMESTAMP NOT NULL DEFAULT now()
 );
 
