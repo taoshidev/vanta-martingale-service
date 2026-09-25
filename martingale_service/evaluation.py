@@ -64,7 +64,8 @@ def evaluate_hotkey(store, params, hotkey, positions_by_pair, now_ms):
                            "floor_fraction": params.floor_fraction,
                            "chain_length": params.chain_length,
                            "floor_mode": params.floor_mode,
-                           "window_days": params.lookback_days}
+                           "window_days": params.lookback_days,
+                           "grace_period_days": params.grace_period_days}
         inserted = store.record_evaluation(
             order_uuid=str(o.order_id), synthetic_hotkey=hotkey, pair_id=pair_id,
             order_processed_ms=o.processed_ms, triggering=chain is not None,
